@@ -124,6 +124,8 @@ type
       const ACheck: string = ''): TntxTest; overload;
     function Eq(const AResult, AExpected: string;
       const ACheck: string = ''): TntxTest; overload;
+    function Eq(const AResult, AExpected: AnsiString;
+      const ACheck: string = ''): TntxTest; overload;
     function Eq(const AResult, AExpected: integer;
       const ACheck: string = ''): TntxTest; overload;
     function Eq(AResult: TStrings; const AExpected: array of string;
@@ -338,6 +340,19 @@ begin
   if IsRunning then
     if AResult<>AExpected then
       RegisterFailure('''%s''', '''%s''', [AResult, AExpected], ACheck);
+  Result:=Self;
+end;
+
+function TntxTest.Eq(const AResult, AExpected: AnsiString;
+  const ACheck: string): TntxTest;
+begin
+  if ntoLog in m_options then
+    Log('Test %s: Eq(AnsiString): ''%s'', ''%s''', [_tnm(ACheck),
+      string(AResult), string(AExpected)]);
+  if IsRunning then
+    if AResult<>AExpected then
+      RegisterFailure('''%s''', '''%s''', [string(AResult), string(AExpected)],
+        ACheck);
   Result:=Self;
 end;
 
