@@ -248,6 +248,7 @@ begin
   else
     m_text:=chk+': '+txt;
   m_state:=ntsFailed;
+  Log('Test "%s" failed: %s', [_tnm(chk), m_text]);
 end;
 
 function TntxTest.IsCancelled: Boolean;
