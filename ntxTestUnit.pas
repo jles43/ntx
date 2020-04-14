@@ -134,6 +134,8 @@ type
       const ACheck: string = ''): TntxTest; overload;
     function Eq(ADataSet: TDataSet; const AFieldName: string;
       AExpected: integer; const ACheck: string = ''): TntxTest; overload;
+    function Eq(AResult, AExpected: Pointer;
+      const ACheck: string = ''): TntxTest; overload;
     function Eq(const AResult, AExpected: TBlobData;
       const ACheck: string = ''): TntxTest; overload;
     function VarEq(const AResult, AExpected: Variant;
@@ -454,6 +456,18 @@ begin
       end;
     end;
   end;
+  Result:=Self;
+end;
+
+function TntxTest.Eq(AResult, AExpected: Pointer;
+  const ACheck: string): TntxTest;
+begin
+  if ntoLog in m_options then
+    Log('Test %s: Eq(Pointer): %p, %p',
+      [_tnm(ACheck), AResult, AExpected]);
+  if IsRunning then
+    if AResult<>AExpected then
+      RegisterFailure('%p', '%p', [AResult, AExpected], ACheck);
   Result:=Self;
 end;
 
