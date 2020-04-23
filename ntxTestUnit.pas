@@ -189,9 +189,10 @@ type
       const ACheck: string = ''): TntxTestURL;
     function CheckJSON(const AJSON: string;
       const ACheck: string = ''): TntxTestJSON;
-    function Call(AFunction: TntxCallFunction): TntxTest;
+    function Call(AFunction: TntxCallFunction;
+      const ACheck: string = ''): TntxTest;
     function Throws(const AMessageRegex: string;
-      AFunction: TntxThrowsFunction): TntxTest;
+      AFunction: TntxThrowsFunction; const ACheck: string = ''): TntxTest;
     function Cancel(const AReason: string): TntxTest;
     function Done: TntxTest;
     function GetFailureCount: integer;
@@ -886,10 +887,10 @@ begin
       Result.Parse(AJSON);
 end;
 
-function TntxTest.Call(AFunction: TntxCallFunction): TntxTest;
+function TntxTest.Call(AFunction: TntxCallFunction; const ACheck: string): TntxTest;
 begin
   if ntoLog in m_options then
-    Log('Test %s: Call(%p)', [m_name, @AFunction]);
+    Log('Test %s: Call(%p)', [_tnm(ACheck), @AFunction]);
   if IsRunning then
   try
     AFunction(Self);
@@ -898,19 +899,19 @@ begin
     begin
       if ntoLog in m_options then
         Log('Test %s: unexpected exception %s: "%s"',
-          [m_name, e.ClassName, e.Message]);
+          [_tnm(ACheck), e.ClassName, e.Message]);
       RegisterFailure('exception %s, but no exception expected',
-        [e.ClassName]);
+        [e.ClassName], ACheck);
     end;
   end;
   Result:=Self;
 end;
 
 function TntxTest.Throws(const AMessageRegex: string;
-  AFunction: TntxThrowsFunction): TntxTest;
+  AFunction: TntxThrowsFunction; const ACheck: string): TntxTest;
 begin
   if ntoLog in m_options then
-    Log('Test %s: Throws(''%s'', %p)', [m_name, AMessageRegex, @AFunction]);
+    Log('Test %s: Throws(''%s'', %p)', [_tnm(ACheck), AMessageRegex, @AFunction]);
   if IsRunning then
   try
     AFunction(Self);
@@ -921,10 +922,11 @@ begin
     on e: Exception do
     begin
       if ntoLog in m_options then
-        Log('Test %s: Throws() caught an exception: ''%s''', [m_name, e.Message]);
+        Log('Test %s: Throws() caught an exception: ''%s''',
+          [_tnm(ACheck), e.Message]);
       if not TRegEx.IsMatch(e.Message, AMessageRegex) then
         RegisterFailure('exception message ''%s''', '''%s''',
-          [e.Message, AMessageRegex]);
+          [e.Message, AMessageRegex], ACheck);
     end;
   end;
   Result:=Self;
