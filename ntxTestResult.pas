@@ -27,6 +27,7 @@ type
   end;
   TntxTestResults = class(TList) // enthält TntxTestResult
   private
+    m_class: TntxTestClass;
     m_options: TntxTestOptions;
     procedure FreeItems;
     function GetResults(idx: integer): TntxTestResult;
@@ -35,7 +36,7 @@ type
   protected
     property TestOptions: TntxTestOptions read m_options;
   public
-    constructor Create(AOptions: TntxTestOptions);
+    constructor Create(AOptions: TntxTestOptions; ATestClass: TntxTestClass=nil);
     destructor Destroy; override;
     function NewTest(const ATitle: string): TntxTest;
     function AllPassed: Boolean;
@@ -60,7 +61,7 @@ begin
   inherited Create;
   m_list:=AList;
   m_report:='';
-  m_test:=TntxTest.Create(ATitle, m_list.TestOptions);
+  m_test:=m_list.m_class.Create(ATitle, m_list.TestOptions);
 end;
 
 destructor TntxTestResult.Destroy;
@@ -95,11 +96,17 @@ end;
 
 { TntxTestResults }
 
-constructor TntxTestResults.Create(AOptions: TntxTestOptions);
+constructor TntxTestResults.Create(AOptions: TntxTestOptions;
+  ATestClass: TntxTestClass);
 begin
   inherited Create;
   m_options:=AOptions;
-  Log('Create TntxTestResults(%s)', [PrtNtxTestOptions(AOptions)]);
+  if Assigned(ATestClass) then
+    m_class:=ATestClass
+  else
+    m_class:=TntxTest;
+  Log('Create TntxTestResults(%s, %s)', [PrtNtxTestOptions(AOptions),
+    PrtClass(m_class)]);
 end;
 
 destructor TntxTestResults.Destroy;
@@ -184,7 +191,8 @@ begin
   Add(tr);
   Result:=tr.Test;
   if ntoLog in TestOptions then
-    Log('< TntxTestResults.NewTest result=%p', [Pointer(Result)]);
+    Log('< TntxTestResults.NewTest result=%p(%s)',
+      [Pointer(Result), PrtObject(Result)]);
 end;
 
 function TntxTestResults.GetReport: string;

@@ -97,6 +97,7 @@ type
     {function Call(AFunction: TntxJSONCallFunction): TntxTestJSON;}
     {function NotEq(const AName: string; const AValue: Variant): TntxTestJSON;}
   end;
+  TntxTestClass = class of TntxTest;
   TntxTest = class(TObject)
   private
     m_options: TntxTestOptions;
@@ -298,7 +299,7 @@ end;
 
 function TntxTest.Subtest(const AName: string): TntxTest;
 begin
-  Result:=TntxTest.Create(AName, m_options, Self);
+  Result:=TntxTestClass(ClassType).Create(AName, m_options, Self);
   m_subtests.Add(Result);
 end;
 
