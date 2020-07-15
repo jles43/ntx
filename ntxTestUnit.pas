@@ -64,6 +64,8 @@ type
     function Parse(const AJSON: string): Boolean;
     procedure CheckValues_Eq(AJValue: TJSONValue; const AValue: Variant;
       const AName, ACheck: string);
+    procedure CheckValues_GT(AJValue: TJSONValue; const AValue: Variant;
+      const AName, ACheck: string);
   protected
   public
     destructor Destroy; override;
@@ -73,6 +75,8 @@ type
     // die Property ist optional, der Wert wird geprüft, nur wenn der Name
     // vorhanden ist
     function EqX(const AName: string; const AExpectedValue: Variant;
+      const ACheck: string = ''): TntxTestJSON;
+    function GT(const AName: string; const AExpectedValue: Variant;
       const ACheck: string = ''): TntxTestJSON;
     function IsObject(const ACheck: string = ''): TntxTestJSON;
     function IsArray(const ACheck: string = ''): TntxTestJSON;
@@ -1393,6 +1397,87 @@ begin
       Trim(AName+' '+ACheck));
 end;
 
+{*******************************************************************************
+  TntxTestJSON.CheckValues_GT - 15.07.20 17:33
+  by:  JL
+********************************************************************************}
+procedure TntxTestJSON.CheckValues_GT(AJValue: TJSONValue;
+  const AValue: Variant; const AName, ACheck: string);
+const
+  _boolval: array[Boolean] of string = ('false', 'true');
+var
+  b, bCompareOk: Boolean;
+  i: integer;
+  f: double;
+  sReceived, sExpected: string;
+begin
+  bCompareOk:=true;
+  case VarType(AValue) of
+  varBoolean:
+    if AJValue is TJSONBool then
+    begin
+      sReceived:=_boolval[TJSONBool(AJValue).AsBoolean];
+      b:=AValue;
+      sExpected:=_boolval[b];
+      bCompareOk:=TJSONBool(AJValue).AsBoolean>b;
+    end
+    else
+      m_owner.RegisterFailure('%s: wrong type, boolean expected',
+        [AName], ACheck);
+  varByte,
+  varSmallInt,
+  varShortInt,
+  varWord,
+  varLongWord,
+  varInteger,
+  varInt64:
+    if AJValue is TJSONNumber then
+    begin
+      sReceived:=TJSONNumber(AJValue).Value;
+      sExpected:=VarToStr(AValue);
+      i:=AValue;
+      bCompareOk:=TJSONNumber(AJValue).AsInt>i;
+    end
+    else
+      m_owner.RegisterFailure('%s: wrong type, number expected',
+        [AName], ACheck);
+  varSingle,
+  varDouble:
+    if AJValue is TJSONNumber then
+    begin
+      sReceived:=TJSONNumber(AJValue).Value;
+      sExpected:=VarToStr(AValue);
+      f:=AValue;
+      bCompareOk:=TJSONNumber(AJValue).AsDouble>f;
+    end
+    else
+      m_owner.RegisterFailure('%s: wrong type, number expected',
+        [AName], ACheck);
+  varString,
+  varStrArg,
+  varUStrArg,
+  varUString:
+    if AJValue is TJSONString then
+    begin
+      bCompareOk:=CompareStr(TJSONString(AJValue).Value, VarToStr(AValue))>0;
+      sReceived:='"'+TJSONString(AJValue).Value+'"';
+      sExpected:='"'+VarToStr(AValue)+'"';
+    end;
+  else
+    begin
+      if ntoLog in m_owner.m_options then
+        Log('  TntxTestJSON.CheckValues_GT: VarType %s(%d) not supported, compare '+
+          'as strings', [VarTypeAsText(VarType(AValue)), VarType(AValue)]);
+      sReceived:=AJValue.Value;
+      sExpected:=VarToStr(AValue);
+      bCompareOk:=CompareStr(sReceived, sExpected)>0;
+    end;
+  end;
+  if m_owner.IsRunning and (not bCompareOk) then
+    m_owner.RegisterFailure('%s', 'greater than %s', [sReceived, sExpected],
+      Trim(AName+' '+ACheck));
+end; {TntxTestJSON.CheckValues_GT}
+
 function TntxTestJSON.Eq(const AName: string; const AExpectedValue: Variant;
   const ACheck: string): TntxTestJSON;
 var
@@ -1432,6 +1517,29 @@ begin
       jv:=TJSONObject(m_data).Values[AName];
       if jv<>nil then
         CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck);
+    end;
+  end;
+  Result:=Self;
+end;
+
+function TntxTestJSON.GT(const AName: string; const AExpectedValue: Variant;
+  const ACheck: string): TntxTestJSON;
+var
+  jv: TJSONValue;
+begin
+  Assert(m_owner<>nil, 'TntxTestJSON.GT: owner not set!');
+  if m_owner.IsRunning then
+    Assert(m_data<>nil, 'TntxTestJSON.GT: data not set! Call Parse() first');
+  if m_owner.IsRunning then
+  begin
+    if not (m_data is TJSONObject) then
+      m_owner.RegisterFailure('a JSON object expected', [], ACheck)
+    else begin
+      jv:=TJSONObject(m_data).Values[AName];
+      if jv=nil then
+        m_owner.RegisterFailure('JSON has no value named ''%s''', [AName], ACheck)
+      else
+        CheckValues_GT(jv, AExpectedValue, _jn(AName), ACheck);
     end;
   end;
   Result:=Self;
