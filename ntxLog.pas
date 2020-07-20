@@ -137,7 +137,7 @@ const
   DATUM_FORMAT='dd.mm.yyyy';
   ZEIT_FORMAT='hh:nn:ss.zzz';
   FULL_FORMAT=DATUM_FORMAT+' '+ZEIT_FORMAT;
-  ONE_SECOND=(1.0/24.0*60.0*60.0);
+  ONE_SECOND=1.0/(24.0*60.0*60.0);
 
 function PrtDate(val: TDateTime): string;
 var
