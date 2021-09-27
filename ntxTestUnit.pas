@@ -1809,7 +1809,7 @@ function TntxTestJSON.Parse(const AJSON: string): Boolean;
 begin
   Assert(m_owner<>nil, 'TntxTestJSON.Parse: owner not set!');
   Assert(m_data=nil, 'TntxTestJSON.Parse: already parsed!');
-  m_data:=TJSONObject.ParseJSONValue(BytesOf(AJSON), 0);
+  m_data:=TJSONObject.ParseJSONValue(BytesOf(AJSON), 0, False { nicht UTF-8 });
   Result:=false;
   if m_data<>nil then
   begin
