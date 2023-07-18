@@ -1485,7 +1485,8 @@ var
 begin
   Assert(m_owner<>nil, 'TntxTestJSON.Eq: owner not set!');
   if m_owner.IsRunning then
-    Assert(m_data<>nil, 'TntxTestJSON.Eq: data not set! Call Parse() first');
+    Assert(m_data<>nil, 'TntxTestJSON.Eq('+AName+', '+VarToStr(AExpectedValue)+
+      '): data not set! Call Parse() first');
   if m_owner.IsRunning then
   begin
     if not (m_data is TJSONObject) then
@@ -1720,7 +1721,9 @@ var
   jv: TJSONValue;
 begin
   Assert(m_owner<>nil, 'TntxTestJSON.CheckArray: owner not set!');
-  Assert(m_data<>nil, 'TntxTestJSON.CheckArray: data not set! Call Parse() first');
+  if m_owner.IsRunning then
+    Assert(m_data<>nil, 'TntxTestJSON.CheckArray('+_jn(AName)+
+      '): data not set! Call Parse() first');
   Result:=TntxTestJSON.Create(Self, AName);
   if m_owner.IsRunning then // wenn der Test noch nicht beendet
   begin
@@ -1795,12 +1798,12 @@ begin
     jv:=(m_data as TJSONObject).Values[AName];
     if jv=nil then
       m_owner.RegisterFailure('JSON has no ''%s'' value', [AName], ACheck)
-    // und prüfen, ob es ein Array ist
+    // und prüfen, ob es ein Objekt ist
     else if not (jv is TJSONObject) then
       m_owner.RegisterFailure('''%s'' is not an object', [AName], ACheck)
     else begin
-      m_data:=jv;
-      m_array:=false;
+      Result.m_data:=jv;
+      Result.m_array:=false;
     end;
   end;
 end;
@@ -1811,8 +1814,9 @@ begin
   Assert(m_data=nil, 'TntxTestJSON.Parse: already parsed!');
   m_data:=TJSONObject.ParseJSONValue(BytesOf(AJSON), 0, False { nicht UTF-8 });
   Result:=false;
-  if m_data<>nil then
-  begin
+  if m_data=nil then
+    m_owner.RegisterFailure('can''t parse JSON %s', [AJSON])
+  else begin
     Result:=true;
     if m_data is TJSONArray then
       m_array:=true
