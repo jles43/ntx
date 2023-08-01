@@ -143,6 +143,12 @@ type
       const ACheck: string = ''): TntxTest; overload;
     function Eq(const AResult, AExpected: TBlobData;
       const ACheck: string = ''): TntxTest; overload;
+    function Eq(const AResult, AExpected: TDateTime;
+      const ACheck: string = ''): TntxTest; overload;
+    function EqDate(const AResult, AExpected: TDateTime;
+      const ACheck: string = ''): TntxTest; overload;
+    function EqTime(const AResult, AExpected: TDateTime;
+      const ACheck: string = ''): TntxTest; overload;
     function VarEq(const AResult, AExpected: Variant;
       const ACheck: string = ''): TntxTest; overload;
     function LT(const AResult, AExpected: integer;
@@ -502,6 +508,46 @@ begin
         end;
       end;
   end;
+  Result:=Self;
+end;
+
+{ Für Date/Time }
+function TntxTest.Eq(const AResult, AExpected: TDateTime;
+  const ACheck: string): TntxTest;
+begin
+  if ntoLog in m_options then
+    Log('Test %s: Eq(TDateTime): %s, %s',
+    [_tnm(ACheck), DateTimeToStr(AResult), DateTimeToStr(AExpected)]);
+  if IsRunning then
+    if AResult<>AExpected then
+      RegisterFailure('%s', '%s',
+        [DateTimeToStr(AResult), DateTimeToStr(AExpected)], ACheck);
+  Result:=Self;
+end;
+
+function TntxTest.EqDate(const AResult, AExpected: TDateTime;
+  const ACheck: string): TntxTest;
+begin
+  if ntoLog in m_options then
+    Log('Test %s: EqDate(TDateTime): %s, %s',
+    [_tnm(ACheck), DateTimeToStr(AResult), DateTimeToStr(AExpected)]);
+  if IsRunning then
+    if DateToStr(AResult)<>DateToStr(AExpected) then
+      RegisterFailure('%s', '%s',
+        [DateTimeToStr(AResult), DateTimeToStr(AExpected)], ACheck);
+  Result:=Self;
+end;
+
+function TntxTest.EqTime(const AResult, AExpected: TDateTime;
+  const ACheck: string): TntxTest;
+begin
+  if ntoLog in m_options then
+    Log('Test %s: EqDate(TDateTime): %s, %s',
+    [_tnm(ACheck), DateTimeToStr(AResult), DateTimeToStr(AExpected)]);
+  if IsRunning then
+    if TimeToStr(AResult)<>TimeToStr(AExpected) then
+      RegisterFailure('%s', '%s',
+        [DateTimeToStr(AResult), DateTimeToStr(AExpected)], ACheck);
   Result:=Self;
 end;
 
