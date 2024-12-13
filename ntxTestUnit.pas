@@ -63,7 +63,7 @@ type
     constructor Create(AOwner: TntxTestJSON; AIndex: integer); overload;
     function Parse(const AJSON: string): Boolean;
     procedure CheckValues_Eq(AJValue: TJSONValue; const AValue: Variant;
-      const AName, ACheck: string);
+      const AName, ACheck: string; ACheckEqual: Boolean);
     procedure CheckValues_GT(AJValue: TJSONValue; const AValue: Variant;
       const AName, ACheck: string);
   protected
@@ -72,10 +72,15 @@ type
     // die Property muss vorhanden sein
     function Eq(const AName: string; const AExpectedValue: Variant;
       const ACheck: string = ''): TntxTestJSON;
+    function NotEq(const AName: string; const AExpectedValue: Variant;
+      const ACheck: string = ''): TntxTestJSON;
     // die Property ist optional, der Wert wird geprüft, nur wenn der Name
     // vorhanden ist
     function EqX(const AName: string; const AExpectedValue: Variant;
       const ACheck: string = ''): TntxTestJSON;
+    function NotEqX(const AName: string; const AExpectedValue: Variant;
+      const ACheck: string = ''): TntxTestJSON;
+    ///////////////////////////////////////////////////////////////////////////
     function GT(const AName: string; const AExpectedValue: Variant;
       const ACheck: string = ''): TntxTestJSON;
     function IsObject(const ACheck: string = ''): TntxTestJSON;
@@ -1371,7 +1376,7 @@ begin
 end;
 
 procedure TntxTestJSON.CheckValues_Eq(AJValue: TJSONValue;
-  const AValue: Variant; const AName, ACheck: string);
+  const AValue: Variant; const AName, ACheck: string; ACheckEqual: Boolean);
 const
   _boolval: array[Boolean] of string = ('false', 'true');
 var
@@ -1438,9 +1443,20 @@ begin
       bEqual:=sReceived=sExpected;
     end;
   end;
-  if m_owner.IsRunning and (not bEqual) then
-    m_owner.RegisterFailure('%s', '%s', [sReceived, sExpected],
-      Trim(AName+' '+ACheck));
+  if m_owner.IsRunning then
+  begin
+    if ACheckEqual then
+    begin
+      if not bEqual then
+        m_owner.RegisterFailure('%s', '%s', [sReceived, sExpected],
+          Trim(AName+' '+ACheck));
+    end
+    else begin
+      if bEqual then
+        m_owner.RegisterFailure('not be equal to %s', [sExpected],
+          Trim(AName+' '+ACheck));
+    end;
+  end;
 end;
 
 {*******************************************************************************
@@ -1542,7 +1558,31 @@ begin
       if jv=nil then
         m_owner.RegisterFailure('JSON has no value named ''%s''', [AName], ACheck)
       else
-        CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck);
+        CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck, true);
+    end;
+  end;
+  Result:=Self;
+end;
+
+function TntxTestJSON.NotEq(const AName: string; const AExpectedValue: Variant;
+  const ACheck: string): TntxTestJSON;
+var
+  jv: TJSONValue;
+begin
+  Assert(m_owner<>nil, 'TntxTestJSON.NotEq: owner not set!');
+  if m_owner.IsRunning then
+    Assert(m_data<>nil, 'TntxTestJSON.NotEq('+AName+', '+VarToStr(AExpectedValue)+
+      '): data not set! Call Parse() first');
+  if m_owner.IsRunning then
+  begin
+    if not (m_data is TJSONObject) then
+      m_owner.RegisterFailure('a JSON object expected', [], ACheck)
+    else begin
+      jv:=TJSONObject(m_data).Values[AName];
+      if jv=nil then
+        m_owner.RegisterFailure('JSON has no value named ''%s''', [AName], ACheck)
+      else
+        CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck, false);
     end;
   end;
   Result:=Self;
@@ -1563,7 +1603,28 @@ begin
     else begin
       jv:=TJSONObject(m_data).Values[AName];
       if jv<>nil then
-        CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck);
+        CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck, true);
+    end;
+  end;
+  Result:=Self;
+end;
+
+function TntxTestJSON.NotEqX(const AName: string; const AExpectedValue: Variant;
+  const ACheck: string): TntxTestJSON;
+var
+  jv: TJSONValue;
+begin
+  Assert(m_owner<>nil, 'TntxTestJSON.NotEqX: owner not set!');
+  if m_owner.IsRunning then
+    Assert(m_data<>nil, 'TntxTestJSON.NotEqX: data not set! Call Parse() first');
+  if m_owner.IsRunning then
+  begin
+    if not (m_data is TJSONObject) then
+      m_owner.RegisterFailure('a JSON object expected', [], ACheck)
+    else begin
+      jv:=TJSONObject(m_data).Values[AName];
+      if jv<>nil then
+        CheckValues_Eq(jv, AExpectedValue, _jn(AName), ACheck, true);
     end;
   end;
   Result:=Self;
@@ -1820,7 +1881,7 @@ begin
       tje:=TntxTestJSON.Create(Self, AIndex);
       ja:=TJSONArray(m_data);
       Assert(AIndex<ja.Count, 'TntxTestJSON.ForItem: AIndex='+IntToStr(AIndex)+
-        'is out of range (0..'+IntToStr(ja.Count)+')');
+        ' is out of range (0..'+IntToStr(ja.Count-1)+')');
       tje.m_data:=TJSONArray(m_data).Items[AIndex];
       tje.m_array:=tje.m_data is TJSONArray;
       AFunction(tje);
@@ -1856,6 +1917,7 @@ end;
 
 function TntxTestJSON.Parse(const AJSON: string): Boolean;
 begin
+  //Log('> Parse(AJSON=%s)', [AJSON]);
   Assert(m_owner<>nil, 'TntxTestJSON.Parse: owner not set!');
   Assert(m_data=nil, 'TntxTestJSON.Parse: already parsed!');
   m_data:=TJSONObject.ParseJSONValue(BytesOf(AJSON), 0, False { nicht UTF-8 });
@@ -1871,6 +1933,7 @@ begin
     else
       Result:=false;
   end;
+  //Log('< Parse returns %s, m_data=%p, m_array=%s', [BoolVal(Result), Pointer(m_data), BoolVal(m_array)]);
 end;
 
 function TntxTestJSON.Done: TntxTest;
